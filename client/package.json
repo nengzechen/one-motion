@@ -3,6 +3,10 @@
   "type": "module",
   "version": "1.0.0",
   "description": "游戏存档云同步工具",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nengzechen/one-motion.git"
+  },
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "vite build --config vite.electron.config.ts && concurrently \"vite --config vite.renderer.config.ts\" \"wait-on tcp:localhost:5173 && NODE_ENV=development electron .\"",
