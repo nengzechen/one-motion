@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -29,6 +32,7 @@ jobs:
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_API_URL: http://103.118.255.22:8080/api
         run: npm run build
 
       - name: Upload installer
