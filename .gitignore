@@ -1,0 +1,32 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Build outputs
+client/dist/
+client/dist-electron/
+client/release/
+
+# Electron cache
+client/.cache/
+
+# Go
+backend/bin/
+*.exe
+*.test
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Config with secrets
+backend/config/config.yaml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
