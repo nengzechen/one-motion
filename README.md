@@ -2,6 +2,9 @@
 
 游戏存档云同步工具，支持多台设备之间自动同步游戏存档。
 
+## 下载地址
+- https://github.com/nengzechen/one-motion/actions/runs/23546582911
+
 ## 功能
 
 - 扫描本地 Steam 游戏及存档路径
