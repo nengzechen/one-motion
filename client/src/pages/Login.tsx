@@ -24,7 +24,7 @@ export default function Login() {
         ? await authAPI.login(username, password)
         : await authAPI.register(username, password, nickname)
       setAuth(res.data.user, res.data.token)
-      navigate('/home')
+      navigate('/home', { replace: true })
     } catch (e: any) {
       setError(e.response?.data?.error || '操作失败')
     } finally {

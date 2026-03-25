@@ -38,20 +38,22 @@ export const gameAPI = {
 
 // ── 存档 ──────────────────────────────────────
 export const saveAPI = {
-  list: (gameId?: number, type: 'save' | 'config' = 'save') =>
+  list: (gameId?: number, type: 'save' | 'config' = 'save', customId?: string) =>
     http.get<{ saves: import('../types').UserSave[] }>('/saves', {
-      params: { game_id: gameId, type },
+      params: { game_id: gameId, type, custom_id: customId },
     }),
 
   upload: (
-    gameId: number,
+    customId: string,
+    gameName: string,
     type: 'save' | 'config',
     file: File,
     note?: string,
     onProgress?: (percent: number) => void
   ) => {
     const form = new FormData()
-    form.append('game_id', String(gameId))
+    form.append('custom_id', customId)
+    form.append('game_name', gameName)
     form.append('type', type)
     form.append('file', file)
     if (note) form.append('note', note)

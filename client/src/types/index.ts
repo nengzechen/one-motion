@@ -62,7 +62,7 @@ declare global {
       maximize: () => void
       close: () => void
       scanPaths: (paths: string[]) => Promise<PathScanResult[]>
-      compress: (sourcePaths: string[], destPath: string) => Promise<string>
+      compress: (sourcePaths: string[]) => Promise<string>
       extract: (zipPath: string, destDir: string) => Promise<boolean>
       resolvePaths: (templates: string[], steamUserdataPath?: string) => Promise<string[]>
       openFolder: (path: string) => void

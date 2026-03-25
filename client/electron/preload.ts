@@ -9,8 +9,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 文件系统
   scanPaths: (paths: string[]) =>
     ipcRenderer.invoke('fs:scanPaths', paths),
-  compress: (sourcePaths: string[], destPath: string) =>
-    ipcRenderer.invoke('fs:compress', sourcePaths, destPath),
+  compress: (sourcePaths: string[]) =>
+    ipcRenderer.invoke('fs:compress', sourcePaths),
   extract: (zipPath: string, destDir: string) =>
     ipcRenderer.invoke('fs:extract', zipPath, destDir),
   resolvePaths: (templates: string[], steamUserdataPath?: string) =>

@@ -9,6 +9,7 @@ interface Props {
   loading: boolean
   onTabChange: (tab: 'save' | 'config') => void
   onRefresh: () => void
+  onUpdatePaths?: (savePaths: string[], configPaths: string[]) => void
 }
 
 function formatBytes(bytes: number) {
@@ -28,7 +29,7 @@ function formatDate(iso: string) {
 
 const isElectron = !!window.electronAPI
 
-export default function SavePanel({ game, saves, activeTab, loading, onTabChange, onRefresh }: Props) {
+export default function SavePanel({ game, saves, activeTab, loading, onTabChange, onRefresh, onUpdatePaths }: Props) {
   // 上传区
   const [saveName, setSaveName] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -40,6 +41,15 @@ export default function SavePanel({ game, saves, activeTab, loading, onTabChange
   // 下载区
   const [downloading, setDownloading] = useState<number | null>(null)
   const [restoreMsg, setRestoreMsg] = useState('')
+
+  // 路径编辑
+  const [editingPaths, setEditingPaths] = useState(false)
+  const [editSavePath, setEditSavePath] = useState(
+    () => JSON.parse(game.save_paths || '[]').join('\n')
+  )
+  const [editConfigPath, setEditConfigPath] = useState(
+    () => JSON.parse(game.config_paths || '[]').join('\n')
+  )
 
   // 重命名
   const [renamingId, setRenamingId] = useState<number | null>(null)
@@ -82,14 +92,15 @@ export default function SavePanel({ game, saves, activeTab, loading, onTabChange
     setUploadProgress(0)
     setUploadMsg(null)
     try {
-      const tmpPath = `${app_tempPath()}/onemotion_${Date.now()}.zip`
-      const zipPath = await window.electronAPI!.compress(existingPaths, tmpPath)
-
-      const response = await fetch(`file://${zipPath}`)
-      const blob = await response.blob()
+      const base64 = await window.electronAPI!.compress(existingPaths)
+      const binary = atob(base64)
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      const blob = new Blob([bytes], { type: 'application/zip' })
       const file = new File([blob], `${game.name_en || game.name}_${activeTab}_${Date.now()}.zip`)
 
-      const res = await saveAPI.upload(game.id, activeTab, file, saveName.trim(), (p) => setUploadProgress(p))
+      const customId = (game as any)._customId as string
+      const res = await saveAPI.upload(customId, game.name, activeTab, file, saveName.trim(), (p) => setUploadProgress(p))
 
       if (res.data.duplicate) {
         setUploadMsg({ text: res.data.message, type: 'warn' })
@@ -187,8 +198,57 @@ export default function SavePanel({ game, saves, activeTab, loading, onTabChange
                 <p className="text-gray-500 text-sm">上传功能需要桌面应用</p>
                 <p className="text-gray-600 text-xs mt-1">当前为浏览器预览模式</p>
               </div>
-            ) : pathTemplates.length === 0 ? (
-              <p className="text-gray-600 text-sm">该游戏暂无收录存档路径</p>
+            ) : pathTemplates.length === 0 && !editingPaths ? (
+              <div>
+                <p className="text-gray-500 text-sm mb-3">尚未设置存档路径</p>
+                <button
+                  onClick={() => setEditingPaths(true)}
+                  className="w-full py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm text-gray-300 transition-colors"
+                >
+                  设置路径
+                </button>
+              </div>
+            ) : editingPaths ? (
+              <div className="space-y-2">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">存档路径（每行一个）</label>
+                  <textarea
+                    autoFocus
+                    value={editSavePath}
+                    onChange={(e) => setEditSavePath(e.target.value)}
+                    rows={3}
+                    className="w-full bg-gray-800 text-white text-xs px-3 py-2 rounded-lg border border-gray-700 focus:border-indigo-500 outline-none resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">配置路径（可选）</label>
+                  <textarea
+                    value={editConfigPath}
+                    onChange={(e) => setEditConfigPath(e.target.value)}
+                    rows={2}
+                    className="w-full bg-gray-800 text-white text-xs px-3 py-2 rounded-lg border border-gray-700 focus:border-indigo-500 outline-none resize-none"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const sp = editSavePath.split('\n').map(s => s.trim()).filter(Boolean)
+                      const cp = editConfigPath.split('\n').map(s => s.trim()).filter(Boolean)
+                      onUpdatePaths?.(sp, cp)
+                      setEditingPaths(false)
+                    }}
+                    className="flex-1 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm transition-colors"
+                  >
+                    保存
+                  </button>
+                  <button
+                    onClick={() => setEditingPaths(false)}
+                    className="px-3 py-1.5 rounded-lg text-gray-500 hover:text-white text-sm"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
             ) : (
               <>
                 {/* 存档名称（必填） */}
@@ -332,7 +392,3 @@ export default function SavePanel({ game, saves, activeTab, loading, onTabChange
   )
 }
 
-// 浏览器环境下返回空字符串，Electron 下 app.getPath('temp') 在主进程处理
-function app_tempPath() {
-  return ''
-}

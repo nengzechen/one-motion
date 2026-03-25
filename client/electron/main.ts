@@ -71,9 +71,9 @@ ipcMain.handle('fs:scanPaths', async (_event, paths: string[]) => {
 })
 
 /**
- * 压缩指定路径列表为 zip，返回 zip 文件路径
+ * 压缩指定路径列表为 zip，返回 base64 编码的 zip 内容
  */
-ipcMain.handle('fs:compress', async (_event, sourcePaths: string[], destPath: string) => {
+ipcMain.handle('fs:compress', async (_event, sourcePaths: string[]) => {
   const zip = new AdmZip()
 
   for (const p of sourcePaths) {
@@ -86,8 +86,11 @@ ipcMain.handle('fs:compress', async (_event, sourcePaths: string[], destPath: st
     }
   }
 
-  zip.writeZip(destPath)
-  return destPath
+  const tmpPath = path.join(app.getPath('temp'), `onemotion_${Date.now()}.zip`)
+  zip.writeZip(tmpPath)
+  const data = fs.readFileSync(tmpPath)
+  fs.unlinkSync(tmpPath)
+  return data.toString('base64')
 })
 
 /**
@@ -197,7 +200,13 @@ ipcMain.handle('steam:scanGames', async (_event, steamPath: string) => {
     }
   }
 
-  return results
+  // 按 appId 去重
+  const seen = new Set<string>()
+  return results.filter(r => {
+    if (seen.has(r.appId)) return false
+    seen.add(r.appId)
+    return true
+  })
 })
 
 /**
