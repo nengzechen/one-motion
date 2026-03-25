@@ -23,20 +23,12 @@ function createWindow() {
     },
   })
 
-  // 先开 DevTools，再加载页面，确保所有报错都能捕获
-  win.webContents.openDevTools()
-
   if (isDev) {
     win.loadURL('http://localhost:5173')
+    win.webContents.openDevTools()
   } else {
-    const indexPath = join(__dirname, '../dist/index.html')
-    console.log('[main] loading file:', indexPath)
-    win.loadFile(indexPath)
+    win.loadFile(join(__dirname, '../dist/index.html'))
   }
-
-  win.webContents.on('did-fail-load', (_e, code, desc, url) => {
-    console.error('[main] did-fail-load:', code, desc, url)
-  })
 }
 
 app.whenReady().then(createWindow)
