@@ -29,4 +29,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 下载并解压存档
   downloadAndExtract: (url: string, destPaths: string[]) =>
     ipcRenderer.invoke('fs:downloadAndExtract', url, destPaths),
+
+  // 自动扫描游戏存档路径
+  steamFindSavePaths: (appId: string, gameName: string, steamPath: string) =>
+    ipcRenderer.invoke('steam:findSavePaths', appId, gameName, steamPath),
 })

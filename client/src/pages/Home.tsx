@@ -39,6 +39,7 @@ export default function Home() {
   const logout = useAuthStore((s) => s.logout)
 
   const [customGames, setCustomGames] = useState<CustomGame[]>(loadCustomGames)
+  const [steamPath, setSteamPath] = useState<string | null>(null)
   const [selectedGame, setSelectedGame] = useState<Game | null>(null)
   const [saves, setSaves] = useState<UserSave[]>([])
   const [activeTab, setActiveTab] = useState<'save' | 'config'>('save')
@@ -73,7 +74,8 @@ export default function Home() {
     }
   }
 
-  const handleAddGame = (game: CustomGame) => {
+  const handleAddGame = (game: CustomGame, foundSteamPath?: string) => {
+    if (foundSteamPath && !steamPath) setSteamPath(foundSteamPath)
     const updated = [...customGames, game]
     setCustomGames(updated)
     saveCustomGames(updated)
@@ -159,6 +161,7 @@ export default function Home() {
             saves={saves}
             activeTab={activeTab}
             loading={loading}
+            steamPath={steamPath}
             onTabChange={handleTabChange}
             onRefresh={() => fetchSaves(selectedGame)}
             onUpdatePaths={(savePaths, configPaths) =>

@@ -10,6 +10,7 @@ interface Props {
   onTabChange: (tab: 'save' | 'config') => void
   onRefresh: () => void
   onUpdatePaths?: (savePaths: string[], configPaths: string[]) => void
+  steamPath?: string | null
 }
 
 function formatBytes(bytes: number) {
@@ -29,7 +30,7 @@ function formatDate(iso: string) {
 
 const isElectron = !!window.electronAPI
 
-export default function SavePanel({ game, saves, activeTab, loading, onTabChange, onRefresh, onUpdatePaths }: Props) {
+export default function SavePanel({ game, saves, activeTab, loading, onTabChange, onRefresh, onUpdatePaths, steamPath }: Props) {
   // 上传区
   const [saveName, setSaveName] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -110,8 +111,9 @@ export default function SavePanel({ game, saves, activeTab, loading, onTabChange
         resetUpload()
         onRefresh()
       }
-    } catch {
-      setUploadMsg({ text: '上传失败，请重试', type: 'err' })
+    } catch (e: any) {
+      const msg = e?.response?.data?.error || e?.message || '上传失败，请重试'
+      setUploadMsg({ text: msg, type: 'err' })
     } finally {
       setUploading(false)
     }
@@ -199,13 +201,29 @@ export default function SavePanel({ game, saves, activeTab, loading, onTabChange
                 <p className="text-gray-600 text-xs mt-1">当前为浏览器预览模式</p>
               </div>
             ) : pathTemplates.length === 0 && !editingPaths ? (
-              <div>
-                <p className="text-gray-500 text-sm mb-3">尚未设置存档路径</p>
+              <div className="space-y-2">
+                <p className="text-gray-500 text-sm">未找到存档路径</p>
+                {steamPath && (
+                  <button
+                    onClick={async () => {
+                      const appId = (game as any)._customId?.replace('steam-', '') || ''
+                      const result = await window.electronAPI!.steamFindSavePaths(appId, game.name, steamPath)
+                      if (result.savePaths.length > 0 || result.configPaths.length > 0) {
+                        onUpdatePaths?.(result.savePaths, result.configPaths)
+                      } else {
+                        setEditingPaths(true)
+                      }
+                    }}
+                    className="w-full py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm text-gray-300 transition-colors"
+                  >
+                    重新扫描路径
+                  </button>
+                )}
                 <button
                   onClick={() => setEditingPaths(true)}
-                  className="w-full py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm text-gray-300 transition-colors"
+                  className="w-full py-1.5 rounded-lg text-xs text-gray-600 hover:text-gray-400 transition-colors"
                 >
-                  设置路径
+                  手动填写路径
                 </button>
               </div>
             ) : editingPaths ? (

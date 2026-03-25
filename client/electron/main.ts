@@ -262,6 +262,73 @@ function downloadToFile(url: string, dest: string): Promise<void> {
   })
 }
 
+/**
+ * 自动扫描游戏存档/配置路径
+ * 优先扫 Steam userdata，再扫常见 AppData 目录
+ */
+ipcMain.handle('steam:findSavePaths', async (_event, appId: string, gameName: string, steamPath: string) => {
+  const savePaths: string[] = []
+  const configPaths: string[] = []
+
+  // 1. Steam userdata（适用于使用 Steam 云存档的游戏）
+  const userdataBase = path.join(steamPath, 'userdata')
+  if (fs.existsSync(userdataBase)) {
+    const steamIds = fs.readdirSync(userdataBase).filter(d => /^\d+$/.test(d))
+    for (const sid of steamIds) {
+      const remote = path.join(userdataBase, sid, appId, 'remote')
+      if (fs.existsSync(remote)) savePaths.push(remote)
+      const cfg = path.join(userdataBase, sid, appId, 'local', 'cfg')
+      if (fs.existsSync(cfg)) configPaths.push(cfg)
+    }
+  }
+
+  // 2. 常见 AppData 位置（Windows only）
+  if (process.platform === 'win32') {
+    const appdata = process.env.APPDATA || ''
+    const localdata = process.env.LOCALAPPDATA || ''
+    const userprofile = process.env.USERPROFILE || ''
+    const localLow = path.join(userprofile, 'AppData', 'LocalLow')
+
+    const variants = nameVariants(gameName)
+    const bases = [appdata, localdata, localLow,
+      path.join(userprofile, 'Documents', 'My Games'),
+      path.join(userprofile, 'Documents'),
+      path.join(userprofile, 'Saved Games'),
+    ]
+    for (const base of bases) {
+      if (!base || !fs.existsSync(base)) continue
+      for (const v of variants) {
+        const p = path.join(base, v)
+        if (fs.existsSync(p)) {
+          // 区分存档和配置
+          const lower = base.toLowerCase()
+          if (lower.includes('appdata') && !lower.includes('roaming') && !lower.includes('locallow')) {
+            configPaths.push(p)
+          } else {
+            savePaths.push(p)
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    savePaths: [...new Set(savePaths)],
+    configPaths: [...new Set(configPaths)],
+  }
+})
+
+function nameVariants(name: string): string[] {
+  const s = new Set<string>()
+  s.add(name)
+  s.add(name.replace(/[:\-]/g, '').trim())
+  s.add(name.split(':')[0].trim())
+  s.add(name.replace(/[^a-zA-Z0-9 ]/g, '').trim())
+  s.add(name.replace(/\s+/g, ''))
+  s.add(name.split(' ')[0])
+  return [...s].filter(v => v.length >= 2)
+}
+
 // 辅助：计算目录大小
 async function getDirSize(dirPath: string): Promise<number> {
   let total = 0
