@@ -13,7 +13,7 @@ export default defineConfig({
       formats: ['cjs'],
     },
     rollupOptions: {
-      external: ['electron', 'path', 'fs', 'http', 'https', 'url', 'os', 'crypto'],
+      external: ['electron', 'path', 'fs', 'http', 'https', 'url', 'os', 'crypto', 'zlib', 'buffer', 'stream', 'events', 'util'],
       output: {
         entryFileNames: '[name].cjs',
       },
