@@ -92,6 +92,7 @@ func (h *SaveHandler) ListSaves(c *gin.Context) {
 // Upload POST /api/saves/upload
 func (h *SaveHandler) Upload(c *gin.Context) {
 	userID := c.GetUint("user_id")
+	username := c.GetString("username")
 
 	customID := c.PostForm("custom_id")
 	gameName := c.DefaultPostForm("game_name", customID)
@@ -158,8 +159,8 @@ func (h *SaveHandler) Upload(c *gin.Context) {
 	if ext == "" {
 		ext = ".zip"
 	}
-	ossPath := fmt.Sprintf("saves/%d/%s/%s/v%d_%d%s",
-		userID, customID, saveType, newVersion, time.Now().Unix(), ext)
+	ossPath := fmt.Sprintf("saves/%s/%s/%s/%d%s",
+		username, customID, saveType, time.Now().Unix(), ext)
 
 	// 上传到 OSS
 	bucket, err := ossClient()

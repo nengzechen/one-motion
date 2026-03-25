@@ -264,9 +264,9 @@ function downloadToFile(url: string, dest: string): Promise<void> {
 
 /**
  * 自动扫描游戏存档/配置路径
- * 优先扫 Steam userdata，再扫常见 AppData 目录
+ * 优先扫 Steam userdata，再扫常见目录（Windows/Mac/Linux）
  */
-ipcMain.handle('steam:findSavePaths', async (_event, appId: string, gameName: string, steamPath: string) => {
+ipcMain.handle('steam:findSavePaths', async (_event, appId: string, gameName: string, steamPath: string, installDir?: string) => {
   const savePaths: string[] = []
   const configPaths: string[] = []
 
@@ -282,27 +282,88 @@ ipcMain.handle('steam:findSavePaths', async (_event, appId: string, gameName: st
     }
   }
 
-  // 2. 常见 AppData 位置（Windows only）
+  // 2. 游戏安装目录内的存档子文件夹
+  if (installDir && fs.existsSync(installDir)) {
+    const saveSubdirs = ['Save', 'Saves', 'save', 'saves', 'SaveData', 'SaveGames', 'UserData', 'Profile', 'Profiles']
+    for (const sub of saveSubdirs) {
+      const p = path.join(installDir, sub)
+      if (fs.existsSync(p)) savePaths.push(p)
+    }
+  }
+
+  const variants = nameVariants(gameName)
+
+  // 3. Windows 常见存档目录
   if (process.platform === 'win32') {
     const appdata = process.env.APPDATA || ''
     const localdata = process.env.LOCALAPPDATA || ''
     const userprofile = process.env.USERPROFILE || ''
     const localLow = path.join(userprofile, 'AppData', 'LocalLow')
 
-    const variants = nameVariants(gameName)
-    const bases = [appdata, localdata, localLow,
+    const saveBases = [
+      path.join(userprofile, 'Saved Games'),
       path.join(userprofile, 'Documents', 'My Games'),
       path.join(userprofile, 'Documents'),
-      path.join(userprofile, 'Saved Games'),
+      path.join(userprofile, 'OneDrive', 'Documents', 'My Games'),
+      path.join(userprofile, 'OneDrive', 'Documents'),
+      appdata,
+      localLow,
     ]
-    for (const base of bases) {
+    const configBases = [localdata]
+
+    for (const base of saveBases) {
       if (!base || !fs.existsSync(base)) continue
       for (const v of variants) {
         const p = path.join(base, v)
+        if (fs.existsSync(p)) savePaths.push(p)
+      }
+    }
+    for (const base of configBases) {
+      if (!base || !fs.existsSync(base)) continue
+      for (const v of variants) {
+        const p = path.join(base, v)
+        if (fs.existsSync(p)) configPaths.push(p)
+      }
+    }
+  }
+
+  // 4. macOS 常见目录
+  if (process.platform === 'darwin') {
+    const home = process.env.HOME || ''
+    const macBases = [
+      path.join(home, 'Library', 'Application Support'),
+      path.join(home, 'Documents'),
+      path.join(home, 'Library', 'Preferences'),
+    ]
+    for (const base of macBases) {
+      if (!fs.existsSync(base)) continue
+      for (const v of variants) {
+        const p = path.join(base, v)
         if (fs.existsSync(p)) {
-          // 区分存档和配置
-          const lower = base.toLowerCase()
-          if (lower.includes('appdata') && !lower.includes('roaming') && !lower.includes('locallow')) {
+          if (base.includes('Preferences')) {
+            configPaths.push(p)
+          } else {
+            savePaths.push(p)
+          }
+        }
+      }
+    }
+  }
+
+  // 5. Linux 常见目录
+  if (process.platform === 'linux') {
+    const home = process.env.HOME || ''
+    const linuxBases = [
+      path.join(home, '.config'),
+      path.join(home, '.local', 'share'),
+      path.join(home, 'Documents'),
+    ]
+    for (const base of linuxBases) {
+      if (!fs.existsSync(base)) continue
+      for (const v of variants) {
+        const p = path.join(base, v)
+        if (fs.existsSync(p)) {
+          if (base.includes('.config')) {
             configPaths.push(p)
           } else {
             savePaths.push(p)
@@ -320,13 +381,32 @@ ipcMain.handle('steam:findSavePaths', async (_event, appId: string, gameName: st
 
 function nameVariants(name: string): string[] {
   const s = new Set<string>()
-  s.add(name)
-  s.add(name.replace(/[:\-]/g, '').trim())
-  s.add(name.split(':')[0].trim())
-  s.add(name.replace(/[^a-zA-Z0-9 ]/g, '').trim())
-  s.add(name.replace(/\s+/g, ''))
-  s.add(name.split(' ')[0])
-  return [...s].filter(v => v.length >= 2)
+  const add = (v: string) => { if (v.length >= 2) s.add(v) }
+
+  add(name)
+  add(name.toLowerCase())
+  // 去掉冒号及其后内容（副标题）
+  const beforeColon = name.split(':')[0].trim()
+  add(beforeColon)
+  add(beforeColon.toLowerCase())
+  // 去除特殊字符
+  add(name.replace(/[^a-zA-Z0-9 ]/g, '').trim())
+  add(name.replace(/[^a-zA-Z0-9]/g, '').trim())
+  // 去除空格
+  add(name.replace(/\s+/g, ''))
+  add(name.replace(/\s+/g, '').toLowerCase())
+  // 只取第一个单词
+  add(name.split(' ')[0])
+  // 去掉 "The " 前缀
+  if (name.startsWith('The ') || name.startsWith('the ')) {
+    const withoutThe = name.slice(4)
+    add(withoutThe)
+    add(withoutThe.replace(/\s+/g, ''))
+  }
+  // 去除版本号标记（如 "Game GOTY", "Game - Enhanced Edition"）
+  add(name.replace(/[-–]\s*(GOTY|Definitive|Enhanced|Complete|Gold|Remaster|Remake|Edition).*$/i, '').trim())
+
+  return [...s]
 }
 
 // 辅助：计算目录大小

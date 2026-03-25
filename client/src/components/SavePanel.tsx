@@ -155,8 +155,11 @@ export default function SavePanel({ game, saves, activeTab, loading, onTabChange
   // ── 删除 ──────────────────────────────────────
   const handleDelete = async (save: UserSave) => {
     if (!window.confirm(`确定删除「${save.note || `v${save.version}`}」？`)) return
-    await saveAPI.delete(save.id)
-    onRefresh()
+    try {
+      await saveAPI.delete(save.id)
+    } finally {
+      onRefresh()
+    }
   }
 
   return (
@@ -331,9 +334,23 @@ export default function SavePanel({ game, saves, activeTab, loading, onTabChange
 
         {/* 右：存档列表 */}
         <div className="flex-1 overflow-y-auto">
-          <h3 className="font-medium mb-3 text-sm text-gray-400">
-            云端存档 ({saves.length})
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-sm text-gray-400">
+              云端存档 ({saves.length})
+            </h3>
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="text-xs text-gray-600 hover:text-gray-300 transition-colors flex items-center gap-1 disabled:opacity-40"
+              title="刷新列表"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className={loading ? 'animate-spin' : ''}>
+                <path d="M10 6A4 4 0 1 1 6 2" strokeLinecap="round"/>
+                <path d="M6 2l1.5-1.5L9 2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              刷新
+            </button>
+          </div>
 
           {loading ? (
             <p className="text-gray-600 text-sm">加载中...</p>

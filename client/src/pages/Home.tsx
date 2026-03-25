@@ -101,12 +101,17 @@ export default function Home() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-950 text-white">
+    <div className="flex h-full bg-gray-950 text-white">
       {/* 左侧：游戏列表 */}
       <aside className="w-64 bg-gray-900 flex flex-col border-r border-gray-800">
         <div className="p-4 border-b border-gray-800">
-          <p className="text-xs text-gray-500">欢迎回来</p>
-          <p className="font-semibold mt-0.5">{user?.nickname}</p>
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xs font-bold">O</span>
+            </div>
+            <span className="font-semibold text-sm tracking-wide text-white">OneMotion</span>
+          </div>
+          <p className="text-xs text-gray-500 ml-0.5">欢迎回来，<span className="text-gray-400">{user?.nickname}</span></p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2">

@@ -70,7 +70,7 @@ declare global {
       steamScanGames: (steamPath: string) => Promise<Array<{ appId: string; name: string; installDir: string }>>
       steamGetUserdataPath: (steamPath: string) => Promise<string | null>
       downloadAndExtract: (url: string, destPaths: string[]) => Promise<{ success: boolean }>
-      steamFindSavePaths: (appId: string, gameName: string, steamPath: string) => Promise<{ savePaths: string[]; configPaths: string[] }>
+      steamFindSavePaths: (appId: string, gameName: string, steamPath: string, installDir?: string) => Promise<{ savePaths: string[]; configPaths: string[] }>
     }
   }
 }

@@ -54,7 +54,7 @@ export default function AddGameModal({ existingIds, onAdd, onClose }: Props) {
     // 自动扫描路径
     setGames(prev => prev.map(g => g.appId === sg.appId ? { ...g, scanning: true } : g))
     try {
-      const result = await window.electronAPI!.steamFindSavePaths(sg.appId, sg.name, steamPath)
+      const result = await window.electronAPI!.steamFindSavePaths(sg.appId, sg.name, steamPath, sg.installDir)
       const updatedGame: ScannedGame = { ...sg, ...result, scanning: false, scanned: true }
       setGames(prev => prev.map(g => g.appId === sg.appId ? updatedGame : g))
 
