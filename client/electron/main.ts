@@ -28,7 +28,18 @@ function createWindow() {
     win.webContents.openDevTools()
   } else {
     win.loadFile(join(__dirname, '../dist/index.html'))
+    // Ctrl+Shift+I 打开 DevTools（生产调试用）
+    win.webContents.on('before-input-event', (_e, input) => {
+      if (input.control && input.shift && input.key === 'I') {
+        win.webContents.openDevTools()
+      }
+    })
   }
+
+  win.webContents.on('did-fail-load', (_e, code, desc, url) => {
+    console.error('加载失败:', code, desc, url)
+    win.webContents.openDevTools()
+  })
 }
 
 app.whenReady().then(createWindow)
